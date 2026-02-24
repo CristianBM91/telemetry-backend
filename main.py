@@ -176,7 +176,7 @@ def list_devices():
 
 @app.get("/last/{device_id}")
 def get_last_measurement(device_id: str):
-    conn = get_connection()
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
