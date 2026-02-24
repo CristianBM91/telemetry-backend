@@ -174,25 +174,25 @@ def list_devices():
     return [{"device_id": r[0], "created_at": r[1]} for r in rows]
 
 
-@app.get("/last/{device_id}")
-def get_last_measurement(device_id: str):
+@app.get("/last/{device_external_id}")
+def get_last_measurement(device_external_id: str):
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT
-            timestamp_iso,
-            accel_x, accel_y, accel_z,
-            gyro_x, gyro_y, gyro_z,
-            mag_x, mag_y, mag_z,
-            light,
-            latitude, longitude, speed,
-            pressure
-        FROM measurements
-        WHERE device_id = %s
-        ORDER BY timestamp DESC
+        SELECT m.timestamp_iso,
+               m.accel_x, m.accel_y, m.accel_z,
+               m.gyro_x, m.gyro_y, m.gyro_z,
+               m.mag_x, m.mag_y, m.mag_z,
+               m.light,
+               m.lat, m.long, m.speed,
+               m.pressure
+        FROM measurements m
+        JOIN devices d ON m.device_id = d.id
+        WHERE d.device_id = %s
+        ORDER BY m.timestamp DESC
         LIMIT 1;
-    """, (device_id,))
+    """, (device_external_id,))
 
     row = cur.fetchone()
 
@@ -204,21 +204,9 @@ def get_last_measurement(device_id: str):
 
     return {
         "timestamp": row[0],
-        "accelerometer": {
-            "x": row[1],
-            "y": row[2],
-            "z": row[3],
-        },
-        "gyroscope": {
-            "x": row[4],
-            "y": row[5],
-            "z": row[6],
-        },
-        "magnetometer": {
-            "x": row[7],
-            "y": row[8],
-            "z": row[9],
-        },
+        "accelerometer": {"x": row[1], "y": row[2], "z": row[3]},
+        "gyroscope": {"x": row[4], "y": row[5], "z": row[6]},
+        "magnetometer": {"x": row[7], "y": row[8], "z": row[9]},
         "light": row[10],
         "location": {
             "lat": row[11],
