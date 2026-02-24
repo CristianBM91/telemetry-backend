@@ -174,25 +174,20 @@ def list_devices():
     return [{"device_id": r[0], "created_at": r[1]} for r in rows]
 
 
-@app.get("/last/{device_external_id}")
-def last_measurement(device_external_id: str):
-    conn = get_conn()
+@app.get("/last/{device_id}")
+def get_last_measurement(device_id: str):
+    conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT d.id FROM devices d
-        WHERE d.device_id = %s;
-    """, (device_external_id,))
-
-    device = cur.fetchone()
-
-    if not device:
-        raise HTTPException(status_code=404, detail="Device no encontrado")
-
-    device_id = device[0]
-
-    cur.execute("""
-        SELECT timestamp_iso, accel_x, accel_y, accel_z
+        SELECT
+            timestamp_iso,
+            accel_x, accel_y, accel_z,
+            gyro_x, gyro_y, gyro_z,
+            mag_x, mag_y, mag_z,
+            light,
+            latitude, longitude, speed,
+            pressure
         FROM measurements
         WHERE device_id = %s
         ORDER BY timestamp DESC
@@ -205,13 +200,30 @@ def last_measurement(device_external_id: str):
     conn.close()
 
     if not row:
-        return {"message": "No hay mediciones"}
+        return {"error": "No data found"}
 
     return {
         "timestamp": row[0],
         "accelerometer": {
             "x": row[1],
             "y": row[2],
-            "z": row[3]
-        }
+            "z": row[3],
+        },
+        "gyroscope": {
+            "x": row[4],
+            "y": row[5],
+            "z": row[6],
+        },
+        "magnetometer": {
+            "x": row[7],
+            "y": row[8],
+            "z": row[9],
+        },
+        "light": row[10],
+        "location": {
+            "lat": row[11],
+            "long": row[12],
+            "speed": row[13],
+        },
+        "pressure": row[14]
     }
